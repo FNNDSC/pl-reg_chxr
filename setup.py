@@ -19,18 +19,18 @@ def get_version(rel_path: str) -> str:
 
 
 setup(
-    name='chris-plugin-template',
-    version=get_version('app.py'),
-    description='A ChRIS DS plugin template',
+    name='reg_chxr',
+    version=get_version('reg_chxr.py'),
+    description='A plugin to wait till a particular set of PACS files are registered to a CUBE instance',
     author='FNNDSC',
     author_email='dev@babyMRI.org',
-    url='https://github.com/FNNDSC/python-chrisapp-template',
-    py_modules=['app'],
+    url='https://github.com/FNNDSC/pl-reg_',
+    py_modules=['reg_chxr','chris_pacs_service'],
     install_requires=['chris_plugin'],
     license='MIT',
     entry_points={
         'console_scripts': [
-            'commandname = app:main'
+            'reg_chxr = reg_chxr:main'
         ]
     },
     classifiers=[
