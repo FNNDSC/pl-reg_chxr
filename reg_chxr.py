@@ -23,7 +23,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.0.1'
+__version__ = '1.0.2'
 
 DISPLAY_TITLE = r"""
        _                               _               
@@ -104,6 +104,10 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
         # Open and read the JSON file
         with open(input_file, 'r') as file:
             data = json.load(file)
+
+            # null check
+            if len(data) == 0:
+                raise Exception(f"Cannot verify registration for empty pacs data.")
 
             # for each individual series, check if total file count matches total file registered
             for series in data:
