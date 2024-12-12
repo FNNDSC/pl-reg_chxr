@@ -23,7 +23,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.0.3'
+__version__ = '1.0.4'
 
 DISPLAY_TITLE = r"""
        _                               _               
@@ -112,21 +112,20 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
             # for each individual series, check if total file count matches total file registered
             for series in data:
                 pacs_search_params = sanitize_for_cube(series)
-                file_count = int(series["NumberOfSeriesRelatedInstances"])
                 registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
 
                 # poll CUBE at regular interval for the status of file registration
                 poll_count = 0
                 total_polls = 10
                 wait_poll = 2
-                while registered_file_count < file_count and poll_count <= total_polls:
+                while registered_file_count < 0 and poll_count <= total_polls:
                     poll_count += 1
                     time.sleep(wait_poll)
                     registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
                     LOG(f"Registered file count is {registered_file_count}")
 
                 # check if polling timed out before registration is finished
-                if registered_file_count != file_count:
+                if registered_file_count == 0:
                     raise Exception(f"PACS file registration unsuccessful. Please try again.")
                 LOG(f"{registered_file_count} files were successfully registered to CUBE.")
 
