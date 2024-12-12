@@ -23,7 +23,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.0.2'
+__version__ = '1.0.3'
 
 DISPLAY_TITLE = r"""
        _                               _               
@@ -120,6 +120,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                 total_polls = 10
                 wait_poll = 2
                 while registered_file_count < file_count and poll_count <= total_polls:
+                    poll_count += 1
                     time.sleep(wait_poll)
                     registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
 
@@ -127,6 +128,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                 if registered_file_count != file_count:
                     raise Exception(f"PACS file registration unsuccessful. Please try again.")
                 LOG(f"{registered_file_count} files were successfully registered to CUBE.")
+
 
 def sanitize_for_cube(series: dict) -> dict:
     """
@@ -136,7 +138,6 @@ def sanitize_for_cube(series: dict) -> dict:
     params["SeriesInstanceUID"] = series["SeriesInstanceUID"]
     params["StudyInstanceUID"] = series["StudyInstanceUID"]
     return params
-
 
 
 
