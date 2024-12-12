@@ -23,7 +23,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.0.4'
+__version__ = '1.0.5'
 
 DISPLAY_TITLE = r"""
        _                               _               
@@ -118,7 +118,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                 poll_count = 0
                 total_polls = 10
                 wait_poll = 2
-                while registered_file_count < 0 and poll_count <= total_polls:
+                while registered_file_count < 1 and poll_count <= total_polls:
                     poll_count += 1
                     time.sleep(wait_poll)
                     registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
