@@ -5,6 +5,7 @@ from argparse import ArgumentParser, Namespace, ArgumentDefaultsHelpFormatter
 from chris_pacs_service import PACSClient
 from loguru import logger
 from chris_plugin import chris_plugin, PathMapper
+from chrisClient import ChrisClient
 import time
 import json
 import copy
@@ -45,6 +46,11 @@ parser.add_argument(
     help="CUBE URL"
 )
 parser.add_argument(
+    "--pluginInstanceID",
+    default="",
+    help="plugin instance ID from which to start analysis",
+)
+parser.add_argument(
     "--CUBEuser",
     default="chris",
     help="CUBE/ChRIS username"
@@ -60,7 +66,12 @@ parser.add_argument(
     type=str,
     help='JSON file containing DICOM data to be retrieved'
 )
-
+parser.add_argument(
+    '--tagStruct',
+    default='',
+    type=str,
+    help='directive to use to anonymize DICOMs'
+)
 parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
 
@@ -97,10 +108,12 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
     #
     # Refer to the documentation for more options, examples, and advanced uses e.g.
     # adding a progress bar and parallelism.
+    if not health_check(options): return
 
     cube_cl = PACSClient(options.CUBEurl, options.CUBEuser, options.CUBEpassword)
     mapper = PathMapper.file_mapper(inputdir, outputdir, glob=options.inputJSONfile)
     for input_file, output_file in mapper:
+
         # Open and read the JSON file
         with open(input_file, 'r') as file:
             data = json.load(file)
@@ -128,6 +141,11 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                 if registered_file_count == 0:
                     raise Exception(f"PACS file registration unsuccessful. Please try again.")
                 LOG(f"{registered_file_count} files were successfully registered to CUBE.")
+                dicom_dir = cube_cl.get_pacs_files(pacs_search_params)
+
+                # create connection object
+                cube_con = ChrisClient(options.CUBEurl, options.CUBEuser, options.CUBEpassword)
+                cube_con.anonymize(dicom_dir, options.tagStruct, options.pluginInstanceID)
 
 
 def sanitize_for_cube(series: dict) -> dict:
@@ -139,6 +157,24 @@ def sanitize_for_cube(series: dict) -> dict:
     params["StudyInstanceUID"] = series["StudyInstanceUID"]
     return params
 
+def health_check(options) -> bool:
+    """
+    check if connections to pfdcm, orthanc, and CUBE is valid
+    """
+    try:
+        if not options.pluginInstanceID:
+            options.pluginInstanceID = os.environ['CHRIS_PREV_PLG_INST_ID']
+    except Exception as ex:
+        LOG(ex)
+        return False
+    try:
+        # create connection object
+        cube_con = ChrisClient(options.CUBEurl, options.CUBEuser, options.CUBEpassword)
+        cube_con.health_check()
+    except Exception as ex:
+        LOG(ex)
+        return False
+    return True
 
 
 if __name__ == '__main__':
