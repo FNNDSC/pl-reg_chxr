@@ -123,6 +123,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                     poll_count += 1
                     time.sleep(wait_poll)
                     registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
+                    LOG(f"Registered file count is {registered_file_count}")
 
                 # check if polling timed out before registration is finished
                 if registered_file_count != file_count:
