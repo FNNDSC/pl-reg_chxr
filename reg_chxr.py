@@ -10,6 +10,7 @@ import time
 import json
 import copy
 import sys
+import os
 
 LOG = logger.debug
 
@@ -24,7 +25,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.0.6'
+__version__ = '1.0.7'
 
 DISPLAY_TITLE = r"""
        _                               _               
