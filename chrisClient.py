@@ -38,7 +38,7 @@ class ChrisClient(BaseClient):
     def pacs_push(self):
         pass
 
-    def anonymize(self, dicom_dir: str, tag_struct: str, pv_id: int):
+    def anonymize(self, dicom_dir: str, tag_struct: str, send_params: dict, pv_id: int):
 
         pl_id = self.__get_plugin_id({"name": "pl-dsdircopy", "version": "1.0.2"})
         pl_sub_id = self.__get_plugin_id({"name": "pl-pfdicom_tagsub", "version": "3.3.4"})
@@ -59,10 +59,10 @@ class ChrisClient(BaseClient):
         dir_send_data = {
             "previous_id": tag_sub_id,
             'inputFileFilter': "**/*dcm",
-            "orthancUrl": params["push"]["url"],
-            "username":params["push"]["username"],
-            "password": params["push"]["password"],
-            "pushToRemote": params["push"]["aec"]
+            "orthancUrl": send_params["url"],
+            "username": send_params["username"],
+            "password": send_params["password"],
+            "pushToRemote": send_params["aec"]
         }
         pl_inst_id = self.__create_feed(pl_dcm_id, dir_send_data)
 

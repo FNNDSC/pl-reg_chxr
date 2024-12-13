@@ -24,7 +24,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.0.5'
+__version__ = '1.0.6'
 
 DISPLAY_TITLE = r"""
        _                               _               
@@ -71,6 +71,37 @@ parser.add_argument(
     default='',
     type=str,
     help='directive to use to anonymize DICOMs'
+)
+parser.add_argument(
+    '--orthancUrl', '-o',
+    dest='orthancUrl',
+    type=str,
+    help='Orthanc server url',
+    default='http://0.0.0.0:8042'
+)
+
+parser.add_argument(
+    '--orthancUsername', '-u',
+    dest='username',
+    type=str,
+    help='Orthanc server username',
+    default='orthanc'
+)
+
+parser.add_argument(
+    '--orthancPassword', '-p',
+    dest='password',
+    type=str,
+    help='Orthanc server password',
+    default='orthanc'
+)
+
+parser.add_argument(
+    '--pushToRemote', '-r',
+    dest='pushToRemote',
+    type=str,
+    help='Remote modality',
+    default=''
 )
 parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
@@ -125,6 +156,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
             # for each individual series, check if total file count matches total file registered
             for series in data:
                 pacs_search_params = sanitize_for_cube(series)
+                file_count = int(series["NumberOfSeriesRelatedInstances"])
                 registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
 
                 # poll CUBE at regular interval for the status of file registration
@@ -135,17 +167,23 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                     poll_count += 1
                     time.sleep(wait_poll)
                     registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
-                    LOG(f"Registered file count is {registered_file_count}")
+                    LOG(f"{registered_file_count} series found in CUBE.")
 
                 # check if polling timed out before registration is finished
                 if registered_file_count == 0:
                     raise Exception(f"PACS file registration unsuccessful. Please try again.")
-                LOG(f"{registered_file_count} files were successfully registered to CUBE.")
+                LOG(f"{file_count} files successfully registered to CUBE.")
+                send_params = {
+                    "url": options.orthancUrl,
+                    "username": options.username,
+                    "password": options.password,
+                    "aec": options.pushToRemote
+                }
                 dicom_dir = cube_cl.get_pacs_files(pacs_search_params)
 
                 # create connection object
                 cube_con = ChrisClient(options.CUBEurl, options.CUBEuser, options.CUBEpassword)
-                cube_con.anonymize(dicom_dir, options.tagStruct, options.pluginInstanceID)
+                cube_con.anonymize(dicom_dir, options.tagStruct,send_params, options.pluginInstanceID)
 
 
 def sanitize_for_cube(series: dict) -> dict:
