@@ -25,7 +25,7 @@ setup(
     author='FNNDSC',
     author_email='dev@babyMRI.org',
     url='https://github.com/FNNDSC/pl-reg_',
-    py_modules=['reg_chxr','chris_pacs_service','base_client','chrisClient'],
+    py_modules=['reg_chxr','chris_pacs_service','base_client','chrisClient','pipeline'],
     install_requires=['chris_plugin'],
     license='MIT',
     entry_points={

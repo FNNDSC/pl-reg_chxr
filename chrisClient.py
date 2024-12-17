@@ -7,6 +7,7 @@ import json
 import time
 from loguru import logger
 import sys
+from pipeline import Pipeline
 
 LOG = logger.debug
 
@@ -39,6 +40,35 @@ class ChrisClient(BaseClient):
         pass
 
     def anonymize(self, dicom_dir: str, tag_struct: str, send_params: dict, pv_id: int):
+        dsdir_inst_id = self.pl_run_dicomdir(dicom_dir,tag_struct,pv_id)
+        plugin_params = {
+            'dicom-anonymization': {
+                "tagStruct": tag_struct,
+                'fileFilter': '.dcm'
+            },
+            'push-to-orthanc': {
+                'inputFileFilter': "**/*dcm",
+                "orthancUrl": send_params["url"],
+                "username": send_params["username"],
+                "password": send_params["password"],
+                "pushToRemote": send_params["aec"]
+            }
+        }
+        pipe = Pipeline(self.cl)
+        pipe.workflow_schedule(dsdir_inst_id, "DICOM anonymization and Orthanc push 20241217",
+                               plugin_params)
+
+    def pl_run_dicomdir(self, dicom_dir: str, tag_struct: str, pv_id: int) -> int:
+        pl_id = self.__get_plugin_id({"name": "pl-dsdircopy", "version": "1.0.2"})
+        # 1) Run dircopy
+        # empty directory check
+        if len(dicom_dir) == 0:
+            LOG(f"No directory found in CUBE containing files for search : {tag_struct}")
+            return
+        pv_in_id = self.__create_feed(pl_id, {"previous_id": pv_id, 'dir': dicom_dir})
+        return int(pv_in_id)
+
+    def anonymize_(self, dicom_dir: str, tag_struct: str, send_params: dict, pv_id: int):
 
         pl_id = self.__get_plugin_id({"name": "pl-dsdircopy", "version": "1.0.2"})
         pl_sub_id = self.__get_plugin_id({"name": "pl-pfdicom_tagsub", "version": "3.3.4"})
