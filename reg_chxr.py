@@ -104,6 +104,20 @@ parser.add_argument(
     help='Remote modality',
     default=''
 )
+parser.add_argument(
+    "--inNode",
+    help="perform in-node implicit parallelization in conjunction with --thread",
+    dest="inNode",
+    action="store_true",
+    default=False,
+)
+parser.add_argument(
+    "--thread",
+    help="use threading to branch in parallel",
+    dest="thread",
+    action="store_true",
+    default=False,
+)
 parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
 
@@ -140,6 +154,8 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
     #
     # Refer to the documentation for more options, examples, and advanced uses e.g.
     # adding a progress bar and parallelism.
+    log_file = os.path.join(outputdir, 'terminal.log')
+    logger.add(log_file)
     if not health_check(options): return
 
     cube_cl = PACSClient(options.CUBEurl, options.CUBEuser, options.CUBEpassword)
