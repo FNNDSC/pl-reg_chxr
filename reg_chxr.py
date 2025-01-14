@@ -25,7 +25,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.0.9'
+__version__ = '1.1.0'
 
 DISPLAY_TITLE = r"""
        _                               _               
@@ -72,6 +72,18 @@ parser.add_argument(
     default='',
     type=str,
     help='directive to use to anonymize DICOMs'
+)
+parser.add_argument(
+    '--pollInterval',
+    default=5,
+    type=int,
+    help='wait time in seconds before the next poll'
+)
+parser.add_argument(
+    '--maxPoll',
+    default=50,
+    type=int,
+    help='max number of times to poll before error out'
 )
 parser.add_argument(
     '--orthancUrl', '-o',
@@ -170,16 +182,18 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
             if len(data) == 0:
                 raise Exception(f"Cannot verify registration for empty pacs data.")
 
+            status: bool = True
             # for each individual series, check if total file count matches total file registered
             for series in data:
                 pacs_search_params = sanitize_for_cube(series)
                 file_count = int(series["NumberOfSeriesRelatedInstances"])
                 registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
+                LOG(f"Polling for SeriesInstanceUID: {series["SeriesInstanceUID"]}")
 
                 # poll CUBE at regular interval for the status of file registration
                 poll_count = 0
-                total_polls = 10
-                wait_poll = 2
+                total_polls = options.maxPoll
+                wait_poll = options.pollInterval
                 while registered_file_count < 1 and poll_count <= total_polls:
                     poll_count += 1
                     time.sleep(wait_poll)
@@ -188,7 +202,10 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
 
                 # check if polling timed out before registration is finished
                 if registered_file_count == 0:
-                    raise Exception(f"PACS file registration unsuccessful. Please try again.")
+                    LOG(f"PACS file registration unsuccessful. Please try again.")
+                    status = False
+                    continue
+                    # raise Exception(f"PACS file registration unsuccessful. Please try again.")
                 LOG(f"{file_count} files successfully registered to CUBE.")
                 send_params = {
                     "url": options.orthancUrl,
@@ -201,6 +218,9 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                 # create connection object
                 cube_con = ChrisClient(options.CUBEurl, options.CUBEuser, options.CUBEpassword)
                 cube_con.anonymize(dicom_dir, options.tagStruct,send_params, options.pluginInstanceID)
+
+            if not status:
+                raise Exception(f"PACS file registration unsuccessful. Please try again.")
 
 
 def sanitize_for_cube(series: dict) -> dict:
