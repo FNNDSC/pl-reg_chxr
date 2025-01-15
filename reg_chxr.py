@@ -25,7 +25,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.1.1'
+__version__ = '1.1.2'
 
 DISPLAY_TITLE = r"""
        _                               _               
@@ -86,7 +86,7 @@ parser.add_argument(
     help='max number of times to poll before error out'
 )
 parser.add_argument(
-    '--orthancUrl', '-o',
+    '--orthancUrl',
     dest='orthancUrl',
     type=str,
     help='Orthanc server url',
@@ -94,23 +94,23 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    '--orthancUsername', '-u',
-    dest='username',
+    '--orthancUsername',
+    dest='orthancUsername',
     type=str,
     help='Orthanc server username',
     default='orthanc'
 )
 
 parser.add_argument(
-    '--orthancPassword', '-p',
-    dest='password',
+    '--orthancPassword',
+    dest='orthancPassword',
     type=str,
     help='Orthanc server password',
     default='orthanc'
 )
 
 parser.add_argument(
-    '--pushToRemote', '-r',
+    '--pushToRemote',
     dest='pushToRemote',
     type=str,
     help='Remote modality',
@@ -209,8 +209,8 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                 LOG(f"{file_count} files successfully registered to CUBE.")
                 send_params = {
                     "url": options.orthancUrl,
-                    "username": options.username,
-                    "password": options.password,
+                    "username": options.orthancUsername,
+                    "password": options.orthancPassword,
                     "aec": options.pushToRemote
                 }
                 dicom_dir = cube_cl.get_pacs_files(pacs_search_params)
