@@ -190,6 +190,12 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                 registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
                 LOG(f"Polling for SeriesInstanceUID: {series["SeriesInstanceUID"]}")
 
+                # keep a record all the series that were not registered to retry
+                unregistered_series = []
+
+                # no. of times to retry unregistered series
+                retries = 5
+
                 # poll CUBE at regular interval for the status of file registration
                 poll_count = 0
                 total_polls = options.maxPoll
@@ -199,6 +205,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                     time.sleep(wait_poll)
                     registered_file_count = cube_cl.get_pacs_registered(pacs_search_params)
                     LOG(f"{registered_file_count} series found in CUBE.")
+                    unregistered_series.append(pacs_search_params)
 
                 # check if polling timed out before registration is finished
                 if registered_file_count == 0:
@@ -221,6 +228,17 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
 
             if not status:
                 raise Exception(f"PACS file registration unsuccessful. Please try again.")
+        if unregistered_series:
+            retry_retrieve(unregistered_series, retries)
+
+def verify_registration(l_series: dict):
+    pass
+
+def retry_retrieve(series: dict, retries: int):
+    retries -= 1
+    for item in series:
+        # retrieve series
+        pass
 
 
 def sanitize_for_cube(series: dict) -> dict:
