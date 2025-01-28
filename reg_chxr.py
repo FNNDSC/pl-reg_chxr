@@ -228,7 +228,11 @@ def health_check(options) -> bool:
 def create_hash_table(retrieve_data: dict, retry: int) -> dict:
     retry_table: dict = {}
     for series in retrieve_data:
-        retry_table[series["SeriesInstanceUID"]] = retry
+        retry_table[series["SeriesInstanceUID"]] = {}
+        retry_table[series["SeriesInstanceUID"]]["retry"] = retry
+        retry_table[series["SeriesInstanceUID"]]["SeriesInstanceUID"] = series["SeriesInstanceUID"]
+        retry_table[series["SeriesInstanceUID"]]["StudyInstanceUID"] = series["StudyInstanceUID"]
+        retry_table[series["SeriesInstanceUID"]]["AccessionNumber"] = series["AccessionNumber"]
     return retry_table
 
 def check_registration(options: Namespace, retry_table: dict, client: PACSClient):
@@ -253,16 +257,16 @@ def check_registration(options: Namespace, retry_table: dict, client: PACSClient
             LOG(f"{registered_series_count} series found in CUBE.")
 
         # check if polling timed out before registration is finished
-        if registered_series_count == 0 and clone_retry_table[series_instance] > 0:
+        if registered_series_count == 0 and clone_retry_table[series_instance]["retry"] > 0:
             LOG(f"PACS series registration unsuccessful. Retrying retrieve for {series_instance}.")
             # retry retrieve
-            retrieve_response = pfdcm.retrieve_pacsfiles({'SeriesInstanceUID':series_instance},
+            retrieve_response = pfdcm.retrieve_pacsfiles(retry_table[series_instance],
                                                          options.PACSurl, options.PACSname)
 
             # save retry file
             srs_json_file_path = os.path.join(options.outputdir,
-                                                  f"{series_instance}_retrieve_retry_{clone_retry_table[series_instance]}.json")
-            clone_retry_table[series_instance] -= 1
+                                                  f"{series_instance}_retrieve_retry_{clone_retry_table[series_instance]["retry"]}.json")
+            clone_retry_table[series_instance]["retry"] -= 1
             with open(srs_json_file_path, 'w', encoding='utf-8') as jsonf:
                 jsonf.write(json.dumps(retrieve_response, indent=4))
             continue
