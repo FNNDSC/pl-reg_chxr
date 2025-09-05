@@ -27,7 +27,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.1.4'
+__version__ = '1.1.5'
 
 DISPLAY_TITLE = r"""
        _                               _               
@@ -66,14 +66,14 @@ parser.add_argument(
     help="plugin instance ID from which to start analysis",
 )
 parser.add_argument(
+    "--CUBEtoken",
+    default="",
+    help="CUBE/ChRIS auth token"
+)
+parser.add_argument(
     "--CUBEuser",
     default="chris",
     help="CUBE/ChRIS username"
-)
-parser.add_argument(
-    "--CUBEpassword",
-    default="chris1234",
-    help="CUBE/ChRIS password"
 )
 parser.add_argument(
     '--inputJSONfile',
@@ -181,7 +181,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
     logger.add(log_file)
     if not health_check(options): return
 
-    cube_cl = PACSClient(options.CUBEurl, options.CUBEuser, options.CUBEpassword)
+    cube_cl = PACSClient(options.CUBEurl, options.CUBEtoken)
     mapper = PathMapper.file_mapper(inputdir, outputdir, glob=options.inputJSONfile)
     for input_file, output_file in mapper:
 
@@ -194,16 +194,18 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                 raise Exception(f"Cannot verify registration for empty pacs data.")
 
             retry_table = create_hash_table(data, 5)
-            check_registration(options, retry_table, cube_cl)
+            registration_errors = check_registration(options, retry_table, cube_cl)
+
+            if registration_errors:
+                LOG(f"ERROR while running pipelines.")
+                sys.exit(1)
 
 
 def sanitize_for_cube(series: dict) -> dict:
     """
     TBD
     """
-    params = {}
-    params["SeriesInstanceUID"] = series["SeriesInstanceUID"]
-    params["StudyInstanceUID"] = series["StudyInstanceUID"]
+    params = {"SeriesInstanceUID": series["SeriesInstanceUID"], "StudyInstanceUID": series["StudyInstanceUID"]}
     return params
 
 def health_check(options) -> bool:
@@ -218,7 +220,9 @@ def health_check(options) -> bool:
         return False
     try:
         # create connection object
-        cube_con = ChrisClient(options.CUBEurl, options.CUBEuser, options.CUBEpassword)
+        if not options.CUBEtoken:
+            options.CUBEtoken = os.environ['CHRIS_USER_TOKEN']
+        cube_con = ChrisClient(options.CUBEurl, options.CUBEtoken)
         cube_con.health_check()
     except Exception as ex:
         LOG(ex)
@@ -235,10 +239,11 @@ def create_hash_table(retrieve_data: dict, retry: int) -> dict:
         retry_table[series["SeriesInstanceUID"]]["AccessionNumber"] = series["AccessionNumber"]
     return retry_table
 
-def check_registration(options: Namespace, retry_table: dict, client: PACSClient):
+# Recursive method to check on registration and then run anonymization pipeline
+def check_registration(options: Namespace, retry_table: dict, client: PACSClient, contains_errors: bool=False):
     # null check
     if len(retry_table) == 0:
-        return
+        return contains_errors
 
     clone_retry_table = copy.deepcopy(retry_table)
 
@@ -274,19 +279,22 @@ def check_registration(options: Namespace, retry_table: dict, client: PACSClient
         if registered_series_count:
             LOG(f"Series {series_instance} successfully registered to CUBE.")
             send_params = {
-                "url": options.orthancUrl,
-                "username": options.orthancUsername,
-                "password": options.orthancPassword,
-                "aec": options.pushToRemote
+                "neuro_dcm_location": options.neuroDicomLocation,
+                "neuro_anon_location": options.neuroAnonLocation,
+                "neuro_nifti_location": options.neuroNiftiLocation,
+                "folder_name": options.folderName
             }
             dicom_dir = client.get_pacs_files({'SeriesInstanceUID': series_instance})
 
-            # create connection object
-            cube_con = ChrisClient(options.CUBEurl, options.CUBEuser, options.CUBEpassword)
-            cube_con.anonymize(dicom_dir, options.tagStruct, send_params, options.pluginInstanceID)
+            # create ChRIS Client Object
+            cube_con = ChrisClient(options.CUBEurl, options.CUBEtoken)
+            d_ret = cube_con.anonymize(dicom_dir, send_params, options.pluginInstanceID)
+            if d_ret.get('error'):
+                contains_errors = True
         clone_retry_table.pop(series_instance)
 
-    check_registration(options, clone_retry_table, client)
+    check_registration(options, clone_retry_table, client, contains_errors)
+    return contains_errors
 
 
 if __name__ == '__main__':
