@@ -85,7 +85,7 @@ class ChrisClient(BaseClient):
     def pacs_push(self):
         pass
 
-    def anonymize(self, dicom_dir: str, tag_struct: str, send_params: dict, pv_id: int):
+    async def anonymize(self, dicom_dir: str, tag_struct: str, send_params: dict, pv_id: int):
         """
         Run the anonymization pipeline for a given DICOM directory and push results to specified Orthanc instance
         """
@@ -105,8 +105,14 @@ class ChrisClient(BaseClient):
             }
         }
         pipe = Pipeline(self.api_base, self.token)
-        d_ret = pipe.workflow_schedule(dsdir_inst_id, "DICOM anonymization and Orthanc push 20241217",
-                               plugin_params)
+        d_ret = await pipe.run_pipeline(
+            previous_inst=dsdir_inst_id,
+            pipeline_name="DICOM anonymization and Orthanc push 20241217",
+            pipeline_params=plugin_params,
+            recipients=send_params['recipients'],
+            smtp_server=send_params['smtp_server'],
+            series_data={}
+        )
         return d_ret
 
     def run_dicomdir_plugin(self, dicom_dir: str, pv_id: int) -> int:
