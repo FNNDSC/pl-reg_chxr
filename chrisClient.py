@@ -92,9 +92,13 @@ class ChrisClient(BaseClient):
         dsdir_inst_id = self.run_dicomdir_plugin(dicom_dir, pv_id)
 
         plugin_params = {
-            'dicom-anonymization': {
+            'preserved-dicom-anonymization': {
+                "tagStruct": json.dumps(send_params["preserve_tags"], ensure_ascii=False)
+            },
+            'full-dicom-anonymization': {
                 "tagStruct": tag_struct,
-                'fileFilter': '.dcm'
+                'fileFilter': '.dcm',
+                'copy_tags': send_params["copy_tags"]
             },
             'push-to-orthanc': {
                 'inputFileFilter': "**/*dcm",

@@ -14,6 +14,7 @@ import os
 import pfdcm
 import copy
 import asyncio
+from typing import Tuple, Dict, Any
 
 LOG = logger.debug
 
@@ -82,6 +83,12 @@ parser.add_argument(
     default='',
     type=str,
     help='directive to use to anonymize DICOMs'
+)
+parser.add_argument(
+    '--preserveTags',
+    default='',
+    type=str,
+    help='Stringified JSON of tags and values to preserve'
 )
 parser.add_argument(
     '--pollInterval',
@@ -189,6 +196,7 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
     logger.add(log_file)
     if not health_check(options): return
 
+    preserve_tags_struct, copy_tags = serialize_preserve_tags(options.preserveTags)
     cube_cl = PACSClient(options.CUBEurl, options.CUBEtoken)
     mapper = PathMapper.file_mapper(inputdir, outputdir, glob=options.inputJSONfile)
     for input_file, output_file in mapper:
@@ -202,11 +210,56 @@ def main(options: Namespace, inputdir: Path, outputdir: Path):
                 raise Exception(f"Cannot verify registration for empty pacs data.")
 
             retry_table = create_hash_table(data, 5)
-            registration_errors = asyncio.run(check_registration(options, retry_table, cube_cl))
+            registration_errors = asyncio.run(check_registration(options, retry_table, cube_cl, preserve_tags_struct, copy_tags))
 
             if registration_errors:
                 LOG(f"ERROR while running pipelines.")
                 sys.exit(1)
+
+def serialize_preserve_tags(dicom_str: str) -> Tuple[Dict[str, Any], str]:
+    """
+    Safely deserializes a JSON string, preserving DICOM-like tags.
+
+    Args:
+        dicom_str (str): A JSON-formatted string representing a DICOM structure.
+
+    Returns:
+        Tuple[Dict[str, Any], str]:
+            - A modified copy of the structure with certain keys removed.
+            - A comma-separated string of all keys (tags).
+
+    Behavior:
+        - Gracefully handles invalid JSON or unexpected types.
+        - Returns an empty structure and string if parsing fails.
+    """
+    if not isinstance(dicom_str, str):
+        raise TypeError("Input must be a string representing JSON data.")
+
+    try:
+        d_struct = json.loads(dicom_str)
+    except json.JSONDecodeError:
+        # Return safe defaults for invalid JSON
+        return {}, ""
+
+    if not isinstance(d_struct, dict):
+        # Expected a JSON object, not a list or scalar
+        return {}, ""
+
+    d_tags = []
+    copy_struct = d_struct.copy()
+
+    for key, value in d_struct.items():
+        try:
+            d_tags.append(str(key))
+            # Preserve only if the key matches the value exactly
+            if key == value:
+                copy_struct.pop(key, None)
+        except Exception:
+            # Fail-safe: if any unexpected error occurs, skip this key
+            continue
+
+    tags_with_comma = ",".join(d_tags)
+    return copy_struct, tags_with_comma
 
 
 def sanitize_for_cube(series: dict) -> dict:
@@ -248,7 +301,7 @@ def create_hash_table(retrieve_data: dict, retry: int) -> dict:
     return retry_table
 
 # Recursive method to check on registration and then run anonymization pipeline
-async def check_registration(options: Namespace, retry_table: dict, client: PACSClient, contains_errors: bool=False):
+async def check_registration(options: Namespace, retry_table: dict, client: PACSClient, preserve_tags: dict, copy_tags, contains_errors: bool=False):
     # null check
     if len(retry_table) == 0:
         return contains_errors
@@ -292,7 +345,9 @@ async def check_registration(options: Namespace, retry_table: dict, client: PACS
                 "password": options.orthancPassword,
                 "aec": options.pushToRemote,
                 "recipients": options.recipients,
-                "smtp_server": options.SMTPServer
+                "smtp_server": options.SMTPServer,
+                "preserve_tags": preserve_tags,
+                "copy_tags": copy_tags
             }
             dicom_dir = client.get_pacs_files({'SeriesInstanceUID': series_instance})
 
@@ -303,7 +358,7 @@ async def check_registration(options: Namespace, retry_table: dict, client: PACS
                 contains_errors = True
         clone_retry_table.pop(series_instance)
 
-    await check_registration(options, clone_retry_table, client, contains_errors)
+    await check_registration(options, clone_retry_table, client, contains_errors, preserve_tags, copy_tags)
     return contains_errors
 
 

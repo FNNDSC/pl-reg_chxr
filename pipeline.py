@@ -301,10 +301,10 @@ class Pipeline:
             nodes_info = compute_workflow_nodes_info(default_params, include_all_defaults=True)
             updated_params = update_plugin_parameters(nodes_info, pipeline_params)
             workflow_id = self.post_workflow(pipeline_id=pipeline_id, previous_id=previous_inst, params=updated_params)
-            #self.run_notification_plugin(previous_inst)
 
-            # Start this in the background (not awaited)
-            asyncio.create_task(self.monitor_pipeline(workflow_id, total_jobs, previous_inst, recipients, smtp_server, series_data))
+            if recipients:
+                # Start this in the background (not awaited)
+                asyncio.create_task(self.monitor_pipeline(workflow_id, total_jobs, previous_inst, recipients, smtp_server, series_data))
 
             logger.info(f"Workflow posted successfully")
             return {"status": "Pipeline running"}
