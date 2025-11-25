@@ -8,6 +8,7 @@ import time
 import asyncio
 from urllib.parse import urlencode
 import pandas as pd
+import os
 
 def transform_plugin_data(nested_data_list: list[dict]) -> list[dict]:
     """Flatten nested plugin data into a list of dictionaries."""
@@ -96,7 +97,6 @@ class Pipeline:
             return response.json().get("collection", {}).get("items", [])
         except ValueError:
             return response.text
-
     # --------------------------
     # Pipeline helpers
     # --------------------------
@@ -217,13 +217,13 @@ class Pipeline:
             status = self._get_workflow_status(workflow_id)
             if status["workflow_failed"]:
                 logger.error("Pipeline failed.")
-                self.run_notification_plugin(pv_inst, "Pipeline failed with errors", rcpts, smtp, series_data)
+                # self.run_notification_plugin(pv_inst, "Pipeline failed with errors", rcpts, smtp, series_data)
                 break
             if status["finished_jobs"] >= total_jobs:
                 logger.info("Pipeline complete.")
                 break
             if status["total_jobs"] < total_jobs:
-                self.run_notification_plugin(pv_inst, "Nodes deleted in pipeline", rcpts, smtp, series_data)
+                # self.run_notification_plugin(pv_inst, "Nodes deleted in pipeline", rcpts, smtp, series_data)
                 break
             time.sleep(20)
 

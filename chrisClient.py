@@ -108,6 +108,7 @@ class ChrisClient(BaseClient):
                 "pushToRemote": send_params["aec"]
             }
         }
+        LOG(f"Scheduling pipeline on plugin instance: {dsdir_inst_id}")
         pipe = Pipeline(self.api_base, self.token)
         d_ret = await pipe.run_pipeline(
             previous_inst=dsdir_inst_id,
@@ -129,6 +130,7 @@ class ChrisClient(BaseClient):
                 raise ValueError("Empty DICOM directory path provided.")
 
             plugin_id = self._get_plugin_id({"name": "pl-dsdircopy", "version": "1.0.2"})
+            LOG(f"Dircopy details : {pv_id} {dicom_dir}")
             instance_id = self._create_plugin_instance(plugin_id, {
                 "previous_id": pv_id,
                 "dir": dicom_dir
