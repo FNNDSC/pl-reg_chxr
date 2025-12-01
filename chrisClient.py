@@ -1,5 +1,6 @@
 ### Chris Client Implementation ###
 
+import os
 import sys
 import json
 import requests
@@ -8,7 +9,6 @@ from urllib.parse import urlencode
 from requests.auth import HTTPBasicAuth
 from requests.exceptions import RequestException, Timeout, HTTPError
 from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
-
 from base_client import BaseClient
 from pipeline import Pipeline
 
@@ -138,6 +138,7 @@ class ChrisClient(BaseClient):
             return int(instance_id)
         except Exception as ex:
             LOG(f"Error occurred while creating dsdircopy instance {ex}")
+            logger.error(f"Local token:{self.token} Server token {os.environ['CHRIS_USER_TOKEN']} ")
 
     def _create_plugin_instance(self, plugin_id: str, params: dict):
         """

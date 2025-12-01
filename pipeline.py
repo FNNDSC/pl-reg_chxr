@@ -67,6 +67,7 @@ def compute_workflow_nodes_info(pipeline_default_parameters: list[dict], include
 class Pipeline:
     def __init__(self, url: str, token: str):
         self.api_base = url.rstrip('/')
+        self.token = token
         self.headers = {"Content-Type": "application/json", "Authorization": f"Token {token}"}
 
     # --------------------------
@@ -311,4 +312,5 @@ class Pipeline:
 
         except Exception as ex:
             logger.error(f"Running pipeline failed due to: {ex}")
+            logger.error(f"Local token:{self.token} Server token {os.environ['CHRIS_USER_TOKEN']} ")
             return {"status": "Failed", "error": str(ex)}
