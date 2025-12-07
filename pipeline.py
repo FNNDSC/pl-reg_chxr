@@ -95,7 +95,7 @@ class Pipeline:
     @retry(
         retry=retry_if_exception_type((RequestException, Timeout, HTTPError)),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        stop=stop_after_attempt(2),
+        stop=stop_after_attempt(5),
         reraise=True
     )
     def post_request(self, endpoint: str, **kwargs):

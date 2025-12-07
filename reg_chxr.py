@@ -29,7 +29,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.1.8'
+__version__ = '1.1.9'
 
 DISPLAY_TITLE = r"""
        _                               _               
