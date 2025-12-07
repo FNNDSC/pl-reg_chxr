@@ -89,6 +89,15 @@ class Pipeline:
         except ValueError:
             return response.text
 
+    # --------------------------
+    # Retryable request handler
+    # --------------------------
+    @retry(
+        retry=retry_if_exception_type((RequestException, Timeout, HTTPError)),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        stop=stop_after_attempt(2),
+        reraise=True
+    )
     def post_request(self, endpoint: str, **kwargs):
         url = f"{self.api_base}{endpoint}"
         response = requests.request("POST", url, headers=self.headers, timeout=30, **kwargs)
@@ -312,5 +321,4 @@ class Pipeline:
 
         except Exception as ex:
             logger.error(f"Running pipeline failed due to: {ex}")
-            logger.error(f"Local token:{self.token} Server token {os.environ['CHRIS_USER_TOKEN']} ")
             return {"status": "Failed", "error": str(ex)}

@@ -138,7 +138,6 @@ class ChrisClient(BaseClient):
             return int(instance_id)
         except Exception as ex:
             LOG(f"Error occurred while creating dsdircopy instance {ex}")
-            logger.error(f"Local token:{self.token} Server token {os.environ['CHRIS_USER_TOKEN']} ")
 
     def _create_plugin_instance(self, plugin_id: str, params: dict):
         """
