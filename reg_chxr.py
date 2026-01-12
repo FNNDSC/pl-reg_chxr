@@ -29,7 +29,7 @@ logger_format = (
 logger.remove()
 logger.add(sys.stderr, format=logger_format)
 
-__version__ = '1.2.0'
+__version__ = '1.2.1'
 
 DISPLAY_TITLE = r"""
        _                               _               
@@ -46,7 +46,7 @@ DISPLAY_TITLE = r"""
 parser = ArgumentParser(description='A plugin to wait till a particular set of PACS files are registered to a CUBE instance',
                         formatter_class=ArgumentDefaultsHelpFormatter)
 parser.add_argument(
-    '--PACSurl',
+    '--PFDCMurl',
     default='',
     type=str,
     help='endpoint URL of pfdcm'
@@ -339,7 +339,7 @@ async def check_registration(options: Namespace, retry_table: dict, client: PACS
             LOG(f"PACS series registration unsuccessful. Retrying retrieve for {series_instance}.")
             # retry retrieve
             retrieve_response = pfdcm.retrieve_pacsfiles(retry_table[series_instance],
-                                                         options.PACSurl, options.PACSname)
+                                                         options.PFDCMurl, options.PACSname)
 
             # save retry file
             srs_json_file_path = os.path.join(options.outputdir,
