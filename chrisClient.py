@@ -92,6 +92,10 @@ class ChrisClient(BaseClient):
         dsdir_inst_id = self.run_dicomdir_plugin(dicom_dir, pv_id)
 
         plugin_params = {
+            'dicom-filter': {
+                "imgCount": send_params["imgCount"],
+                "dicomFilter": send_params["dicomFilter"],
+            },
             'preserved-dicom-anonymization': {
                 "tagStruct": json.dumps(send_params["preserve_tags"], ensure_ascii=False)
             },

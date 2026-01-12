@@ -5,12 +5,21 @@
 [![ci](https://github.com/FNNDSC/pl-reg_chxr/actions/workflows/ci.yml/badge.svg)](https://github.com/FNNDSC/pl-reg_chxr/actions/workflows/ci.yml)
 
 `pl-reg_chxr` is a [_ChRIS_](https://chrisproject.org/)
-_ds_ plugin which takes in ...  as input files and
-creates ... as output files.
+_ds_ plugin that waits for a specified set of DICOM files to be registered from a PACS
+into a CUBE/ChRIS instance. It polls CUBE until the expected data appear, and 
+triggers a downstream processing pipeline.
 
 ## Abstract
 
-...
+In distributed medical imaging workflows, DICOM data may arrive asynchronously from
+external PACS systems. Downstream analysis pipelines often require guarantees that all
+expected studies or series have been fully registered before processing begins.
+
+`pl-reg_chxr` provides a synchronization and verification step within ChRIS pipelines.
+Given a JSON description of expected DICOM objects and optional filtering rules, the
+plugin repeatedly polls CUBE until the required data are available or a
+configurable timeout is reached. The plugin supports parallel execution, Orthanc/PACS
+integration, optional anonymization directives, and email notifications.
 
 ## Installation
 

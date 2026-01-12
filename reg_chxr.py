@@ -156,6 +156,18 @@ parser.add_argument(
     type=str,
     help='valid email server'
 )
+parser.add_argument(
+    '--dicomFilter',
+    default='',
+    type=str,
+    help='comma separated dicom tags with values'
+)
+parser.add_argument(
+    '--imgCount',
+    default='',
+    type=str,
+    help='comma separated image count filter expression.'
+)
 parser.add_argument('-V', '--version', action='version',
                     version=f'%(prog)s {__version__}')
 
@@ -347,7 +359,9 @@ async def check_registration(options: Namespace, retry_table: dict, client: PACS
                 "recipients": options.recipients,
                 "smtp_server": options.SMTPServer,
                 "preserve_tags": preserve_tags,
-                "copy_tags": copy_tags
+                "copy_tags": copy_tags,
+                "imgCount": options.imgCount,
+                "dicomFilter": options.dicomFilter,
             }
             dicom_dir = client.get_pacs_files({'SeriesInstanceUID': series_instance})
 
